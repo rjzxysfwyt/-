@@ -7,8 +7,8 @@ def test():
     while True:
         msg=input('请输入：')
         client_socket.send(msg.encode('utf-8'))
-    #     recv_data=client_socket.recv(512)
-    #     print(recv_data.decode('utf-8')) 
+        recv_data=client_socket.recv(512)
+        print(recv_data.decode('utf-8')) 
 
     client_socket.close()
 if __name__=='__main__':
