@@ -8,3 +8,10 @@ DELIMITER='|'#自定义协议数据分隔符
 #---服务器相关配置---
 SERVER_IP='127.0.0.1'
 SERVER_PORT=8090
+
+#数据库配置信息
+DB_HOST='127.0.0.1'
+DB_PORT=3306
+DB_NAME='mini_chat'
+DB_USER='root'
+DB_PASS='root'
