@@ -4,7 +4,7 @@ class SocketWrapper(object):
         self.sock=sock
 
     def recv_data(self):
-        """接收数据丙解码为字符串"""
+        """接收数据并解码为字符串"""
         try:
             return self.sock.recv(512).decode('utf-8')
         except:
