@@ -9,7 +9,6 @@ from pymongo import MongoClient
 import create_yzm
 import send_email
 
-# bp = Blueprint('')
 # 连接redis数据库
 con = redis.StrictRedis(
     host='127.0.0.1',
@@ -48,19 +47,7 @@ def login():
     user = user_col.find_one({'email': email_number})
     if user is None:
         return jsonify({'status': 1000})  # status:1000代表该用户未注册
-    return jsonify({'status': 1001, 'msg': {'error': True}}) if user.get('pwd') != pwd else jsonify({'status': 1002,
-                                                                                                     'msg': {
-                                                                                                         'error': False,
-                                                                                                         'name': user.get(
-                                                                                                             'name'),
-                                                                                                         'img': user.get(
-                                                                                                             'img'),
-                                                                                                         'hobbies': user.get(
-                                                                                                             'hobbies'),
-                                                                                                         'kind': user.get(
-                                                                                                             'kind'),
-                                                                                                         'like': user.get(
-                                                                                                             'like')}})  # 登录成功后会返回用户信息 1001嗲表密码不正确，1002登陆成功
+    return jsonify({'status': 1001, 'msg': {'error': True}}) if user.get('pwd') != pwd else jsonify({'status': 1002, 'msg': {'error': False, 'name': user.get('name'), 'img': user.get('img'), 'hobbies': user.get('hobbies'), 'kind': user.get('kind'), 'like': user.get('like')}})  # 登录成功后会返回用户信息 1001嗲表密码不正确，1002登陆成功
 
 
 @app.route('/register1', methods=['post'])  # 前端 点击获取邮件验证码
