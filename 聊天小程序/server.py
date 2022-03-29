@@ -1,10 +1,13 @@
+from http import client
 import socket
 from urllib import request
+from matplotlib.style import use
 from server_socket import ServerSocket
 from socket_wrapper import SocketWrapper
 from threading import Thread
 from config import *
 from response_protocol import *
+from db import DB
 
 class Server(object):
     """服务器核心类"""
@@ -21,6 +24,9 @@ class Server(object):
         #创建保存当前用户的字典
         self.clients={}
         
+        #创建数据库管理对象
+        self.db=DB()
+
 
     def register(self,request_id,handle_function):
         """再次封装消息类型和处理函数"""
@@ -59,17 +65,24 @@ class Server(object):
             if handle_function:
                 handle_function(client_soc,parse_data)
             #print(recv_data)
-            client_soc.send_data('服务器接收到的是：'+ recv_data)
+            #client_soc.send_data('服务器接收到的是：'+ recv_data)
 
     def remove_offline_user(self,client_soc):
         """客户端下线的处理"""
         print("有客户端下线了~~")
+        for username,info in self.clients.items():
+            if info['sock']==client_soc:
+                print(self.clients)
+                del self.clients[username]
+                print(self.clients)
+                break
+
  
     def parse_request_text(self,text):
         """
         解析客户端发送来的数据
         登录消息：0001|username|password
-        聊天信息：0002|username|massages
+        聊天信息：0002|username|messages
         
         """
         print('解析客户端数据'+text)
@@ -86,13 +99,27 @@ class Server(object):
         elif request_data['request_id']==REQUEST_CHAT:
             #用户请求聊天
             request_data['username']=request_list[1]
-            request_data['massages']=request_list[2]
+            request_data['messages']=request_list[2]
 
         return request_data
 
-    def requset_chat_handle(self):
+    def requset_chat_handle(self,client_soc,request_data):
         """处理聊天功能"""
-        print('收到聊天信息~~准备处理~~')
+        print('收到聊天信息~~准备处理~~',request_data)
+        #获取消息内容
+        username=request_data['username']
+        messages=request_data['messages']
+        nickname=self.clients[username]['nickname']
+        #拼接发送给客户端的消息文本
+        msg=ResponseProtocol.response_chat(nickname,messages)
+
+        #转发消息给在线用户
+        for u_name,info in self.clients.items():
+            if username==u_name:
+                continue
+            info['sock'].send_data(msg)
+
+
 
     def request_login_handle(self,client_soc,request_data):
         """处理登录功能"""
@@ -116,7 +143,20 @@ class Server(object):
 
     def check_user_login(self,username,password):
         """检查用户是否登陆成功，并返回检查结果（0/失败，1/成功），昵称，用户名"""
-        return '1', 'itcast1', 'user1'
+        #从数据库查询用户信息
+        sql="select * from users where user_name='%s'"% username
+        result=self.db.get_one(sql)
+
+        #用户不存在，登陆失败
+        if not result:
+            return '0','用户名不存在',username
+
+        #密码错误，登陆失败
+        if password !=result['user_password']:
+            return '0','密码错误',username
+
+        #否则登录成功
+        return '1', result['user_nickname'], username
 
 
 if __name__=='__main__':
