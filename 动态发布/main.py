@@ -51,5 +51,17 @@ def get_post():
     return jsonify({'status': 3003})
 
 
+@app.route('/delPost', methods=['get', 'post'])
+def del_post():
+    # 接收用户的邮箱和发布动态时的时间戳
+    if request.args.get('email') and request.args.get('time'):
+        res = client['db1']['post'].delete_one({'$and': [{'email': request.args.get('email')}, {'time': int(request.args.get('time'))}]})
+        if res.deleted_count == 0:
+            return jsonify({'status': 3004, 'msg': '无此数据'})
+        return jsonify({'status': 3005, 'msg': '删除成功'})
+    else:
+        return jsonify({'status': 3006})  # 删除失败，缺乏必要参数
+
+
 if __name__ == '__main__':
     app.run()
