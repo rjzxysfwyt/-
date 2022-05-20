@@ -2,12 +2,11 @@ import random
 import redis
 import datetime
 import hashlib
-from flask import Flask, request, jsonify, make_response, abort, Response, Blueprint
-
-from pymongo import MongoClient
-
 import create_yzm
 import send_email
+from flask import Flask, request, jsonify, make_response, abort, Response, Blueprint
+from pymongo import MongoClient
+from bson.objectid import ObjectId
 
 # 连接redis数据库
 con = redis.StrictRedis(
@@ -87,7 +86,6 @@ def check_email():
         rid = email + 'DQWJNDJSANFIEWURH'
         m = hashlib.md5()
         m.update(rid.encode('utf-8'))
-        print(m.hexdigest())
         response.set_cookie('rid', m.hexdigest(), expires=outdate)
         return response
     return jsonify({'status': 1003})  # 1003验证码错误
@@ -211,7 +209,6 @@ def search(sex='', age=[], hobbies='', location='', limit=20, start=0):
 
 @app.route('/get_data', methods=['get'])
 def get_data():
-    print(request.args, len(request.args))
     if len(request.args) <= 1:
         abort(403)
     sex, age1, age2, hobbies, location = request.args.get('sex'), request.args.get('age1'), request.args.get(
@@ -224,6 +221,7 @@ def get_data():
         age = [age1, age2]
     user_info = search(sex, age, hobbies, location, int(limit), int(start))
     return jsonify({'data': user_info})
+
 
 # 返回交友数据结束
 
@@ -255,7 +253,7 @@ def get_post():
         data = post_col.find({'time': {'$gte': old_time}})
         data_list = []
         for i in data:
-            del i['_id']
+            i['_id'] = i['_id'].__str__()
             data_list.append(i)
         return jsonify({'status': 3002, 'data': data_list})
     elif request.args.get('email'):
@@ -269,11 +267,38 @@ def get_post():
     return jsonify({'status': 3003})
 
 
+@app.route('/comment', methods=['get', 'post'])
+def comment():
+    if not request.form.get('comment') or not request.form.get('username') or not request.form.get('email'):
+        return jsonify({'status': 3006, 'msg': '评论为空或缺乏用户信息'})
+    elif not request.form.get('id'):
+        return jsonify({'status': 3006, 'msg': '缺乏id'})
+    else:
+        comm = request.form.get('comment')
+        if not comm.strip():
+            return jsonify({'status': 3006, 'msg': '评论为空'})
+        post_col = client['db1']['post']
+        pid = ObjectId(request.form.get('id'))
+        data = post_col.find_one({'_id': pid})
+        if not data:
+            return jsonify({'status': 3006, 'msg': '没有该动态信息'})
+        comment_list = data.get('comment_list') or []
+        comm = {
+            'username': request.form.get('username'),
+            'comment': request.form.get('comment').strip(),
+            'email': request.form.get('email')
+        }
+        data['comment_list'] = comment_list.append(comm)
+        post_col.update({'_id': pid}, {'$set': {'comment_list': comment_list}})
+        return jsonify({'status': 3007, 'msg': '评论成功'})
+
+
 @app.route('/delPost', methods=['get', 'post'])
 def del_post():
     # 接收用户的邮箱和发布动态时的时间戳
     if request.args.get('email') and request.args.get('time'):
-        res = client['db1']['post'].delete_one({'$and': [{'email': request.args.get('email')}, {'time': int(request.args.get('time'))}]})
+        res = client['db1']['post'].delete_one(
+            {'$and': [{'email': request.args.get('email')}, {'time': int(request.args.get('time'))}]})
         if res.deleted_count == 0:
             return jsonify({'status': 3004, 'msg': '无此数据'})
         return jsonify({'status': 3005, 'msg': '删除成功'})
