@@ -1,4 +1,6 @@
 import random
+import re
+
 import redis
 import datetime
 import hashlib
@@ -24,6 +26,11 @@ client = MongoClient(
 app = Flask(__name__)
 
 
+@app.route('/')
+def index():
+    return 'index'
+
+
 # 登陆注册开始
 def check_yzm(uuid, val):
     yzm_number = con.get(uuid)
@@ -32,10 +39,16 @@ def check_yzm(uuid, val):
 
 @app.route('/get_yzm', methods=['get'])  # 前端随机生成一个uuid来绑定验证码
 def get_yzm():
-    yzm_number, yzm_b64 = create_yzm.create()
     uuid = request.args.get('uuid')
-    con.set(uuid, yzm_number)
-    return jsonify({'status': 2000, 'yzm_b64': yzm_b64.decode('utf-8')})
+    if uuid:
+        if uuid.strip():
+            yzm_number, yzm_b64 = create_yzm.create()
+            con.set(uuid, yzm_number)
+            return jsonify({'status': 2000, 'yzm_b64': yzm_b64.decode('utf-8')})
+        else:
+            return jsonify({'status': 2001, 'msg': '缺少必要参数'})
+    else:
+        return jsonify({'status': 2001, 'msg': '缺少必要参数'})
 
 
 @app.route('/login', methods=['post', 'get'])
@@ -307,4 +320,4 @@ def del_post():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
