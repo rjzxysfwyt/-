@@ -9,6 +9,7 @@ import send_email
 from flask import Flask, request, jsonify, make_response, abort, Response, Blueprint
 from pymongo import MongoClient
 from bson.objectid import ObjectId
+from gevent import pywsgi
 
 # 连接redis数据库
 con = redis.StrictRedis(
@@ -320,4 +321,5 @@ def del_post():
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    server = pywsgi.WSGIServer(('0.0.0.0', 5000), app)
+    server.serve_forever()
