@@ -6,10 +6,14 @@ import datetime
 import hashlib
 import create_yzm
 import send_email
+from gevent import monkey
+from gevent.pywsgi import WSGIServer
+
+monkey.patch_all()
 from flask import Flask, request, jsonify, make_response, abort, Response, Blueprint
 from pymongo import MongoClient
 from bson.objectid import ObjectId
-from gevent import pywsgi
+from multiprocessing import Process, cpu_count
 
 # 连接redis数据库
 con = redis.StrictRedis(
@@ -320,6 +324,26 @@ def del_post():
         return jsonify({'status': 3006})  # 删除失败，缺乏必要参数
 
 
+def run(MULTI_PROCESS):
+    if not MULTI_PROCESS:
+        WSGIServer(('0.0.0.0', 5000), app).serve_forever()
+    else:
+        mulserver = WSGIServer(('0.0.0.0', 5000), app)
+        mulserver.start()
+
+        def server_forever():
+            mulserver.start_accepting()
+            mulserver._stop_event.wait()
+
+        for i in range(cpu_count()):
+            p = Process(target=server_forever)
+            p.run()
+            # p.start()
+
+
 if __name__ == '__main__':
-    server = pywsgi.WSGIServer(('0.0.0.0', 5000), app)
-    server.serve_forever()
+    # 单进程 + 协程
+    # run(False)
+    # 多进程 + 协程
+    run(True)
+
