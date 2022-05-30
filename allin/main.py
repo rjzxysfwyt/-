@@ -79,7 +79,7 @@ def login():
                                                                                                              'kind'),
                                                                                                          'like': user.get(
                                                                                                              'like')}})
-    # 登录成功后会返回用户信息 1001嗲表密码不正确，1002登陆成功
+    # 登录成功后会返回用户信息 1001代表密码不正确，1002登陆成功
 
 
 @app.route('/register1', methods=['post', 'get'])  # 前端 点击获取邮件验证码
@@ -90,8 +90,8 @@ def register_step1():
         send_email.send(email_number, '注册认证', content)
         con.set(email_number, content.lower())
         con.expire(email_number, 900)  # 邮件验证码15分钟内有效
-        return 'ok'
-    return 'no'
+        return jsonify({'status': 1004, 'msg': '邮件验证码发送成功'})
+    return jsonify({'status': 1005, 'msg': '邮件验证码发送失败'})
 
 
 @app.route('/check_email', methods=['post', 'get'])  # 检查邮件验证码是否正确，正确就设置cookie以便进一步注册
