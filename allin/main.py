@@ -323,6 +323,32 @@ def del_post():
         return jsonify({'status': 3006})  # 删除失败，缺乏必要参数
 
 
+# 获取文案
+@app.route('/article', methods=['get'])
+def article():
+    articles = client['db1']['article'].find()
+    if articles:
+        article_list = []
+        for a in articles:
+            a['_id'] = a['_id'].__str__()
+            article_list.append(a)
+        return jsonify({'status': 3007, 'data': article_list})
+    return jsonify({'status': 3008, 'msg': '无文章数据'})
+
+
+# 获取图片
+@app.route('/pic', methods=['get'])
+def pic():
+    images = client['db1']['pic'].find()
+    if images:
+        img_list = []
+        for i in images:
+            i['_id'] = i['_id'].__str__()
+            img_list.append(i)
+        return jsonify({'status': 3007, 'data': img_list})
+    return jsonify({'status': 3008, 'msg': '无图片数据'})
+
+
 def run(MULTI_PROCESS):
     if not MULTI_PROCESS:
         WSGIServer(('0.0.0.0', 5000), app).serve_forever()
