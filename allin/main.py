@@ -1,6 +1,5 @@
 import random
 import re
-
 import redis
 import datetime
 import hashlib
@@ -10,7 +9,7 @@ from gevent import monkey
 from gevent.pywsgi import WSGIServer
 
 monkey.patch_all()
-from flask import Flask, request, jsonify, make_response, abort, Response, Blueprint
+from flask import Flask, request, jsonify, make_response, abort, render_template, Response, Blueprint
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 from multiprocessing import Process, cpu_count
@@ -31,9 +30,10 @@ client = MongoClient(
 app = Flask(__name__)
 
 
-@app.route('/')
+@app.route('/', methods=['get', 'post'])
 def index():
     return 'index'
+    # return render_template("index.html")
 
 
 # 登陆注册开始
@@ -61,24 +61,21 @@ def login():
     if not check_yzm(request.form.get('uuid'), request.form.get('val')):  # 先检查验证码正确性 val指的是用户填写的验证码
         return jsonify({'status': 1003})
     email_number = request.form.get('email')
-    pwd = request.form.get('pwd')  # 这里的pwd可以先在前端哈希加盐再传过来
+    pwd = request.form.get('pass')  # 这里的pwd可以先在前端哈希加盐再传过来
     user_col = client['db1']['user']  # 选择db1库下的user集合
     user = user_col.find_one({'email': email_number})
     if user is None:
-        return jsonify({'status': 1000})  # status:1000代表该用户未注册
-    return jsonify({'status': 1001, 'msg': {'error': True}}) if user.get('pwd') != pwd else jsonify({'status': 1002,
-                                                                                                     'msg': {
-                                                                                                         'error': False,
-                                                                                                         'name': user.get(
-                                                                                                             'name'),
-                                                                                                         'img': user.get(
-                                                                                                             'img'),
-                                                                                                         'hobbies': user.get(
-                                                                                                             'hobbies'),
-                                                                                                         'kind': user.get(
-                                                                                                             'kind'),
-                                                                                                         'like': user.get(
-                                                                                                             'like')}})
+        return jsonify({'status': 1000, 'msg': '无此用户信息'})  # status:1000代表该用户未注册
+    return jsonify({'status': 1001, 'msg': '密码错误'}) if user.get('pwd') != pwd else jsonify(
+        {'status': 1002, 'msg': '登陆成功', 'data': {
+            'name': user.get('name'),
+            'username': user.get('username'),
+            'email': user.get('email'),
+            'sex': user.get('sex'),
+            'birthday': user.get('birthday'),
+            'like': user.get('like'),
+            'flike': user.get('flike')
+        }})
     # 登录成功后会返回用户信息 1001代表密码不正确，1002登陆成功
 
 
@@ -86,6 +83,7 @@ def login():
 def register_step1():
     if request.form.get('email'):
         email_number = request.form.get('email')
+        # email_number = request.values.get('email')
         content = ''.join([random.choice(create_yzm.lst) for j in range(4)])
         send_email.send(email_number, '注册认证', content)
         con.set(email_number, content.lower())
@@ -113,26 +111,27 @@ def check_email():
 def register_step2():
     rid = request.cookies.get('rid')
     email = request.form.get('email')
-    if not rid or not email:
+    if not email or not rid:
         abort(403)
+    # 验证cookie
+    real_rid = email + 'DQWJNDJSANFIEWURH'
     m = hashlib.md5()
-    email = request.form.get('email')
-    m.update((email + 'DQWJNDJSANFIEWURH').encode('utf-8'))
-    if rid != m.hexdigest():
-        abort(403)
+    m.update(real_rid.encode('utf-8'))
+    real_rid = m.hexdigest()
+    if real_rid != rid:
+        return jsonify({'status': 4000, 'msg': 'cookie错误'})
     user_info = {
         'name': request.form.get('name'),
-        'tel': request.form.get('tel'),
+        'username': request.form.get('username'),
         'email': email,
-        'pwd': request.form.get('pwd'),
-        'img': request.form.get('img'),
-        'hobbies': request.form.get('hobbies'),
-        'kind': request.form.get('kind'),
-        'like': request.form.get('like')
+        'pwd': request.form.get('pass'),
+        'birthday': request.form.get('birthday'),
+        'like': request.form.get('like'),
+        'flike': request.form.get('flike')
     }
     # mongodb
     client['db1']['user'].insert_one(user_info)
-    return jsonify({'status': 1005})  # 1005注册成功
+    return jsonify({'status': 1005, 'msg': '注册成功'})  # 1005注册成功
 
 
 # 登陆注册结束
@@ -346,4 +345,3 @@ if __name__ == '__main__':
     # run(False)
     # 多进程 + 协程
     run(True)
-
