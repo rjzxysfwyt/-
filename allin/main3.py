@@ -39,6 +39,7 @@ def index():
 # 登陆注册开始
 def check_yzm(uuid, val):
     yzm_number = con.get(uuid)
+    con.delete(uuid)
     return True if yzm_number == val else False
 
 
@@ -84,6 +85,8 @@ def login():
 def register_step1():
     if request.form.get('email'):
         email_number = request.form.get('email')
+        if client['db1']['user'].find_one({'email': email_number}):
+            return jsonify({'status': 1010, 'msg': '该用户已注册'})
         # email_number = request.values.get('email')
         content = ''.join([random.choice(create_yzm.lst) for j in range(4)])
         send_email.send(email_number, '注册认证', content)
@@ -110,20 +113,20 @@ def check_email():
 
 @app.route('/register2', methods=['post', 'get'])  # 检查有无cookie，如果用户是正常操作的话能注册成功
 def register_step2():
-    # rid = request.cookies.get('rid')
-    # email = request.form.get('email')
-    # if not email or not rid:
-    #     abort(403)
-    # # 验证cookie
-    # real_rid = email + 'DQWJNDJSANFIEWURH'
-    # m = hashlib.md5()
-    # m.update(real_rid.encode('utf-8'))
-    # real_rid = m.hexdigest()
-    # if real_rid != rid:
-    #     return jsonify({'status': 4000, 'msg': 'cookie错误'})
+    rid = request.cookies.get('rid')
     email = request.form.get('email')
-    if not email:
+    if not email or not rid:
         abort(403)
+    # 验证cookie
+    real_rid = email + 'DQWJNDJSANFIEWURH'
+    m = hashlib.md5()
+    m.update(real_rid.encode('utf-8'))
+    real_rid = m.hexdigest()
+    if real_rid != rid:
+        return jsonify({'status': 4000, 'msg': 'cookie错误'})
+    # email = request.form.get('email')
+    # if not email:
+    #     abort(403)
     user_info = {
         'name': request.form.get('name'),
         'username': request.form.get('username'),
