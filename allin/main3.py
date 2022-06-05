@@ -256,7 +256,8 @@ def rm_friend():
     user_col = client['db1']['user']
     user = user_col.find_one({'email': email})
     fuser = user_col.find_one({'email': femail})
-    if not user or fuser:
+    # print(user,fuser)
+    if not user or not fuser:
         return jsonify({'status': 5001, 'msg': '用户不存在'})
     friends = [] if not user.get('friends') else user.get('friends')
     if femail not in friends:
