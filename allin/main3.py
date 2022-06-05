@@ -382,6 +382,7 @@ def get_data():
         return jsonify({'status': 1007, 'msg': '缺乏必要参数'})
     username, sex, like, flike = request.args.get('username'), request.args.get('sex'), request.args.get(
         'like'), request.args.get('flike')
+    femail = request.args.get('femail')
     # 存关键字，方便推荐用户
     email = request.args.get('email')
     if like:
@@ -389,7 +390,7 @@ def get_data():
     if flike:
         client['db1']['user'].update({'email': email}, {'$set': {'k2': flike}})
     limit, start = request.args.get('limit'), request.args.get('start')
-    user_info = search(email, username, sex, like, flike, int(limit), int(start))
+    user_info = search(femail, username, sex, like, flike, int(limit), int(start))
     return jsonify({'status': 1008, 'data': user_info})
 
 
