@@ -59,6 +59,8 @@ def get_yzm():
 
 @app.route('/login', methods=['post', 'get'])
 def login():
+    if not request.form.get('uuid') or not request.form.get('val') or not request.form.get('email') or not request.form.get('pass'):
+        abort(403)
     if not check_yzm(request.form.get('uuid'), request.form.get('val')):  # 先检查验证码正确性 val指的是用户填写的验证码
         return jsonify({'status': 1003})
     email_number = request.form.get('email')
@@ -98,16 +100,19 @@ def register_step1():
 
 @app.route('/check_email', methods=['post', 'get'])  # 检查邮件验证码是否正确，正确就设置cookie以便进一步注册
 def check_email():
+
     email = request.form.get('email')
-    val = request.form.get('value').lower()
-    if val == con.get(email):
-        outdate = datetime.datetime.today() + datetime.timedelta(days=30)
-        response = make_response('')
-        rid = email + 'DQWJNDJSANFIEWURH'
-        m = hashlib.md5()
-        m.update(rid.encode('utf-8'))
-        response.set_cookie('rid', m.hexdigest(), expires=outdate)
-        return response
+    val = request.form.get('value')
+    if email and val:
+        val = val.lower()
+        if val == con.get(email):
+            outdate = datetime.datetime.today() + datetime.timedelta(days=30)
+            response = make_response('')
+            rid = email + 'DQWJNDJSANFIEWURH'
+            m = hashlib.md5()
+            m.update(rid.encode('utf-8'))
+            response.set_cookie('rid', m.hexdigest(), expires=outdate)
+            return response
     return jsonify({'status': 1003})  # 1003验证码错误
 
 
