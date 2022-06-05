@@ -251,7 +251,7 @@ def set_friend():
 @app.route('/rm_friend', methods=['get'])
 def rm_friend():
     email, femail = request.args.get('email'), request.args.get('femail')
-    if not email or femail:
+    if not email or not femail:
         return jsonify({'status': 5000, 'msg': '缺乏参数'})
     user_col = client['db1']['user']
     user = user_col.find_one({'email': email})
