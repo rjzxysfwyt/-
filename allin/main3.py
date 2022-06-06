@@ -118,20 +118,20 @@ def check_email():
 
 @app.route('/register2', methods=['post', 'get'])  # 检查有无cookie，如果用户是正常操作的话能注册成功
 def register_step2():
-    rid = request.cookies.get('rid')
+#     rid = request.cookies.get('rid')
+#     email = request.form.get('email')
+#     if not email or not rid:
+#         abort(403)
+#     # 验证cookie
+#     real_rid = email + 'DQWJNDJSANFIEWURH'
+#     m = hashlib.md5()
+#     m.update(real_rid.encode('utf-8'))
+#     real_rid = m.hexdigest()
+#     if real_rid != rid:
+#         return jsonify({'status': 4000, 'msg': 'cookie错误'})
     email = request.form.get('email')
-    if not email or not rid:
+    if not email:
         abort(403)
-    # 验证cookie
-    real_rid = email + 'DQWJNDJSANFIEWURH'
-    m = hashlib.md5()
-    m.update(real_rid.encode('utf-8'))
-    real_rid = m.hexdigest()
-    if real_rid != rid:
-        return jsonify({'status': 4000, 'msg': 'cookie错误'})
-    # email = request.form.get('email')
-    # if not email:
-    #     abort(403)
     user_info = {
         'name': request.form.get('name'),
         'username': request.form.get('username'),
