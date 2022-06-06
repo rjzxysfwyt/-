@@ -445,7 +445,7 @@ def recommend():
 # 动态发布开始
 @app.route('/putPost', methods=['get', 'post'])
 def put_post():
-    if not request.form.get('email'):
+    if not request.form.get('email') or not request.form.get('time') or not request.form.get('message'):
         return jsonify({'status': 3000, 'msg': '缺少有效参数'})  # 3000代表无效用户
     email_number = request.form.get('email')
     user = client['db1']['user'].find_one({'email': email_number})
