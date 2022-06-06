@@ -448,9 +448,10 @@ def put_post():
     if not request.form.get('email'):
         return jsonify({'status': 3000, 'msg': '缺少有效参数'})  # 3000代表无效用户
     email_number = request.form.get('email')
-    if not client['db1']['user'].find_one({'email': email_number}):
+    user = client['db1']['user'].find_one({'email': email_number})
+    if not user:
         return jsonify({'status': 3000, 'msg': '缺少有效参数'})
-    username = request.form.get('username')
+    username = user.get('username')
     msg = request.form.get('message')
     time = request.form.get('time')  # 传时间戳过来！！！
     post_data = {
@@ -516,11 +517,15 @@ def get_post():
 
 @app.route('/comment', methods=['get', 'post'])
 def comment():
-    if not request.form.get('comment') or not request.form.get('username') or not request.form.get('email'):
+    if not request.form.get('comment') or not request.form.get('email'):
         return jsonify({'status': 3006, 'msg': '评论为空或缺乏用户信息'})
     elif not request.form.get('id'):
         return jsonify({'status': 3006, 'msg': '缺乏id'})
     else:
+        email = request.form.get('email')
+        user = client['db1']['user'].find_one({'email': email})
+        if not user:
+            return jsonify({'status': 3006, 'msg': '评论为空或缺乏用户信息'})
         comm = request.form.get('comment')
         if not comm.strip():
             return jsonify({'status': 3006, 'msg': '评论为空'})
@@ -533,7 +538,7 @@ def comment():
         comm = {
             'username': request.form.get('username'),
             'comment': request.form.get('comment').strip(),
-            'email': request.form.get('email')
+            'email': email
         }
         data['comment_list'] = comment_list.append(comm)
         post_col.update({'_id': pid}, {'$set': {'comment_list': comment_list}})
