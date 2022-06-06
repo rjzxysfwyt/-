@@ -7,7 +7,6 @@ post请求
 携带参数
 
 + email 用户邮箱，前端记得正则匹配检验
-+ username 用户名
 + message 发布的内容
 + time 发布时的时间戳
 
@@ -42,7 +41,6 @@ http://127.0.0.1:5000/comment
 post表单请求
 必要参数
 + comment评论的内容
-+ username用户名
 + email发布评论的用户的邮箱
 + id动态的id
 status：3006代表评论为空/缺少用户信息/缺少id/该动态不存在
