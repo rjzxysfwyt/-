@@ -24,7 +24,8 @@ con = redis.StrictRedis(
 # 连接mongodb数据库
 client = MongoClient(
     host='127.0.0.1',
-    port=27017
+    port=27017,
+    connect=False
 )
 
 app = Flask(__name__)
@@ -118,20 +119,20 @@ def check_email():
 
 @app.route('/register2', methods=['post', 'get'])  # 检查有无cookie，如果用户是正常操作的话能注册成功
 def register_step2():
-#     rid = request.cookies.get('rid')
-#     email = request.form.get('email')
-#     if not email or not rid:
-#         abort(403)
-#     # 验证cookie
-#     real_rid = email + 'DQWJNDJSANFIEWURH'
-#     m = hashlib.md5()
-#     m.update(real_rid.encode('utf-8'))
-#     real_rid = m.hexdigest()
-#     if real_rid != rid:
-#         return jsonify({'status': 4000, 'msg': 'cookie错误'})
+    rid = request.cookies.get('rid')
     email = request.form.get('email')
-    if not email:
+    if not email or not rid:
         abort(403)
+    # 验证cookie
+    real_rid = email + 'DQWJNDJSANFIEWURH'
+    m = hashlib.md5()
+    m.update(real_rid.encode('utf-8'))
+    real_rid = m.hexdigest()
+    if real_rid != rid:
+        return jsonify({'status': 4000, 'msg': 'cookie错误'})
+    # email = request.form.get('email')
+    # if not email:
+    #     abort(403)
     user_info = {
         'name': request.form.get('name'),
         'username': request.form.get('username'),
@@ -512,7 +513,7 @@ def get_post():
             del i['_id']
             data_list.append(i)
         return jsonify({'status': 3002, 'data': data_list})
-    return jsonify({'status': 3003})
+    return jsonify({'status': 3003, 'msg': '缺少参数'})
 
 
 @app.route('/comment', methods=['get', 'post'])
@@ -530,6 +531,8 @@ def comment():
         if not comm.strip():
             return jsonify({'status': 3006, 'msg': '评论为空'})
         post_col = client['db1']['post']
+        if len(request.form.get('id')) < 24:
+            return jsonify({'status': 3006, 'msg': '没有该动态信息'})
         pid = ObjectId(request.form.get('id'))
         data = post_col.find_one({'_id': pid})
         if not data:
@@ -555,7 +558,7 @@ def del_post():
             return jsonify({'status': 3004, 'msg': '无此数据'})
         return jsonify({'status': 3005, 'msg': '删除成功'})
     else:
-        return jsonify({'status': 3006})  # 删除失败，缺乏必要参数
+        return jsonify({'status': 3006, 'msg': '缺少参数'})  # 删除失败，缺乏必要参数
 
 
 # 获取好友列表
@@ -586,15 +589,15 @@ def get_friends():
 def is_friend():
     email = request.args.get('email')
     femail = request.args.get('femail')
-    if not email or femail:
+    if not email or not femail:
         return jsonify({'status': 6000, 'msg': '缺少有效参数'})
     user = client['db1']['user'].find_one({'email': email})
     if not user:
         return jsonify({'status': 6000, 'msg': '缺少有效参数'})
     friends = [] if not user.get('friends') else user.get('friends')
     if femail in friends:
-        return jsonify({'status': 6001, 'res': 0})
-    return jsonify({'status': 6001, 'res': 1})
+        return jsonify({'status': 6001, 'res': 1})
+    return jsonify({'status': 6001, 'res': 0})
 
 
 # 获取个人信息
@@ -606,6 +609,7 @@ def get_info():
     user = client['db1']['user'].find_one({'email': email})
     if not user:
         return jsonify({'status': 6000, 'msg': '缺少有效参数'})
+    user['_id'] = user['_id'].__str__()
     return jsonify({'status': 6001, 'data': user})
 
 
