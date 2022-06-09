@@ -50,6 +50,7 @@ def get_yzm():
     if uuid:
         if uuid.strip():
             yzm_number, yzm_b64 = create_yzm.create()
+            yzm_number = yzm_number.lower()
             con.set(uuid, yzm_number)
             return jsonify({'status': 2000, 'yzm_b64': yzm_b64.decode('utf-8')})
         else:
@@ -62,7 +63,7 @@ def get_yzm():
 def login():
     if not request.form.get('uuid') or not request.form.get('val') or not request.form.get('email') or not request.form.get('pass'):
         abort(403)
-    if not check_yzm(request.form.get('uuid'), request.form.get('val')):  # 先检查验证码正确性 val指的是用户填写的验证码
+    if not check_yzm(request.form.get('uuid'), request.form.get('val').lower()):  # 先检查验证码正确性 val指的是用户填写的验证码
         return jsonify({'status': 1003})
     email_number = request.form.get('email')
     pwd = request.form.get('pass')  # 这里的pwd可以先在前端哈希加盐再传过来
@@ -101,7 +102,6 @@ def register_step1():
 
 @app.route('/check_email', methods=['post', 'get'])  # 检查邮件验证码是否正确，正确就设置cookie以便进一步注册
 def check_email():
-
     email = request.form.get('email')
     val = request.form.get('value')
     if email and val:
@@ -531,7 +531,7 @@ def comment():
         if not comm.strip():
             return jsonify({'status': 3006, 'msg': '评论为空'})
         post_col = client['db1']['post']
-        if len(request.form.get('id')) < 24:
+        if len(request.form.get('id')) != 24:
             return jsonify({'status': 3006, 'msg': '没有该动态信息'})
         pid = ObjectId(request.form.get('id'))
         data = post_col.find_one({'_id': pid})
