@@ -14,6 +14,9 @@ from pymongo import MongoClient
 from bson.objectid import ObjectId
 from multiprocessing import Process, cpu_count
 
+from wtforms import Form, StringField
+from wtforms.validators import Email
+
 # 连接redis数据库
 con = redis.StrictRedis(
     host='127.0.0.1',
@@ -202,6 +205,131 @@ def reset():
             'introduction': user.get('introduction')
         }})
 
+class CheckForm(Form):
+    email = StringField(u'邮箱', validators=[Email()])
+    
+#查询好友
+@app.route('/check/', methods=['POST', 'GET'])
+def check():
+    form = CheckForm(request.form)
+    user_col = client['db1']['user']
+    if form.validate():
+        if request.method == 'POST':
+            email = form.email.data
+            s = ''
+            for i in email:
+                if i == '@':
+                    break
+                s = s + i
+            if 4 <= len(s) <= 32:
+                try:
+                    user = user_col.find_one({'email': email})
+                    print(user.get('username'), user.get('email'), user.get('like'), user.get('location'))
+                    return jsonify(
+                        {'status': 4999,
+                         'msg': '用户已找到',
+                         'username': user.get('username'),
+                         'email': user.get('email'),
+                         'like': user.get('like'),
+                         'location': user.get('location')})
+                except IndexError:
+                    return jsonify(
+                        {'status': 4998,
+                         'msg': '用户未找到',
+                         })
+            else:
+                return jsonify(
+                    {'status': 4997,
+                     'msg': '邮箱格式错误',
+                     })
+        else:
+            return jsonify(
+                {'status': 4996,
+                 'msg': 'POST请求失败',
+                 })
+
+    return jsonify(
+        {'status': 4997,
+         'msg': '邮箱格式错误',
+         })
+
+#请求添加好友
+@app.route('/add_friend/', methods=['post', 'get'])
+def set_friend():
+    email, femail = request.args.get('email'), request.args.get('femail')
+    if not email or not femail:
+        return jsonify({'status': 5000, 'msg': '缺乏参数'})
+    user_col = client['db1']['user']
+    user = user_col.find_one({'email': email})
+    if not user:
+        return jsonify({'status': 5001, 'msg': '无此用户'})
+    fuser = user_col.find_one({'email': femail})
+    if not fuser:
+        return jsonify({'status': 5002, 'msg': '添加的用户不存在'})
+    friends = user.get('friends')
+    if not friends:
+        friends = []
+    if femail not in friends:
+        return jsonify({'status': 5003, 'msg': '请求添加好友'})
+
+#获取许可，添加好友
+@app.route('/set_friend/', methods=['post', 'get'])
+def request_friend():
+    status, sig = request.args.get('status'), request.args.get('sig')
+    email, femail = request.args.get('email'), request.args.get('femail')
+    print(status, sig, email, femail)
+    if status == '5003':
+        if sig == '1':
+            user_col = client['db1']['user']
+            user1 = user_col.find_one({'email': femail})
+            friends1 = user1.get('friends')
+            friends1.append(femail)
+
+            user2 = user_col.find_one({'email': email})
+            friends2 = user2.get('friends')
+            friends2.append(email)
+
+            user_col.update({'email': femail}, {
+                '$set': {'friends': friends2}})
+            user_col.update({'email': email}, {
+                '$set': {'friends': friends1}})
+            return jsonify({'status': 5004, 'msg': '添加成功'})
+        else:
+            return jsonify({'status': 5005, 'msg': '对方拒绝添加好友'})
+    else:
+        return jsonify({'status': 5006, 'msg': '不是交友请求'})
+
+#设置分组
+@app.route('/set_group/', methods=['post', 'get'])
+def set_group():
+    email, group = request.args.get('email'), request.args.get('group')
+    user_col = client['db1']['user']
+    user = user_col.find_one({'email': email})
+    group1 = [] if not user.get('group1') else user.get('group1')
+    group2 = [] if not user.get('group2') else user.get('group2')
+    group3 = [] if not user.get('group3') else user.get('group3')
+    group4 = [] if not user.get('group4') else user.get('group4')
+    if email in group1:
+        group1.remove(email)
+    if email in group2:
+        group2.remove(email)
+    if email in group3:
+        group3.remove(email)
+    if email in group4:
+        group4.remove(email)
+    if group == '1':
+        group1.append(email)
+    elif group == '2':
+        group2.append(email)
+    elif group == '3':
+        group3.append(email)
+    elif group == '4':
+        group4.append(email)
+    else:
+        return jsonify({'status': 5007, 'msg': '缺少参数或错误'})
+    user_col.update({'email': email}, {
+        '$set': {'group1': group1, 'group2': group2, 'group3': group3, 'group4': group4}})
+    return jsonify({'status': 5008, 'msg': '分组成功'})
 
 # 添加好友
 @app.route('/set_friend', methods=['get'])
